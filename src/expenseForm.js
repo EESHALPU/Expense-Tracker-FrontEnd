@@ -4,7 +4,7 @@ import './App.css';
 export const ExpenseForm = () => {
   const [data, setData] = useState({
     date: "",
-    category: "shopping",
+    category: "",
     notes: "",
     amount: "",
     incomeToSend: ""
@@ -136,6 +136,7 @@ export const ExpenseForm = () => {
             </div>
             <div className="col-75">
               <select value={data.category} defaultValue={data.category} onChange={(e) => setData(prev => ({...prev, category: e.target.value}))} id="category" name="category">
+                <option >Select Category</option>
                 <option value="shopping">Shopping</option>
                 <option value="food">Food</option>
                 <option value="travel">Travel</option>
