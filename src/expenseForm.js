@@ -2,23 +2,26 @@ import React, { useEffect, useRef, useState } from 'react'
 import './App.css';
 
 export const ExpenseForm = () => {
-  const notes = useRef("")
-  const date = useRef("")
-  const category = useRef("")
-  const amount = useRef(0)
-  const incomeToSend = useRef(0)
+  const [data, setData] = useState({
+    date: "",
+    category: "shopping",
+    notes: "",
+    amount: "",
+    incomeToSend: ""
+  })
+  
   const [income, setIncome] = useState(0)
   const [list, setList] = useState([])
 
   var validate = function(e) {
-    if (e.value.indexOf(".") != -1 && e.value.split(".")[1].length >=2){
-        e.value = Number(e.value).toFixed(2)
+    if (e.target.value.indexOf(".") != -1 && e.target.value.split(".")[1].length >=2){
+        e.target.value = Number(e.target.value).toFixed(2)
    } 
     }
 
   useEffect(() => {
     const fetchApi = async() => {
-      let res =await fetch(' http://localhost:5000/list', {
+      let res =await fetch('http://13.235.18.137:5000/list', {
       method: "GET",
       headers:{
         "Accept": 'application/json',
@@ -27,7 +30,7 @@ export const ExpenseForm = () => {
       },
     }).then(r => r.json())
     .then(response => response)
-    let res2 =await fetch(' http://localhost:5000/', {
+    let res2 =await fetch('http://13.235.18.137:5000/', {
       method: "GET",
       headers:{
         "Accept": 'application/json',
@@ -45,39 +48,58 @@ export const ExpenseForm = () => {
     fetchApi()
   }, [])
   const onSubmit =async () => {
-    let res =await fetch(' http://localhost:5000/add', {
+    let errorInFields = []
+    Object.keys(data).forEach(item => {
+      if ((!data[item] || data[item] === ".") && item !== "incomeToSend") {
+        errorInFields.push(item[0].toUpperCase()+item.substring(1))
+      }
+    })
+    if (errorInFields.length){ 
+      alert(`Missing fields: ${errorInFields.toString().split(",").join(", ")}`)
+      return
+    }
+    let res =await fetch(' http://13.235.18.137:5000/add', {
       method: "POST",
       headers:{
         "Content-Type": 'application/json'
       },
       body: JSON.stringify(
         {
-          date:date.current,
-          category:category.current,
-          notes:notes.current,
-          amount:amount.current
+          date:data.date,
+          category:data.category,
+          notes:data.notes,
+          amount:data.amount
       } 
       )
     }).then(r => r.json())
     .then(response => response)
     if (res) {
+      setIncome(prev => (prev - data.amount))
+      setData({
+        date: "",
+        category: "",
+        notes: "",
+        amount: "",
+        incomeToSend: ""
+      })
       setList(prev => {
         return [...prev, res]
       })
+
     }
     console.log(res)    
   }
 
   const addIncome =async () => {
-    if (Number(incomeToSend.current)< 0) return;
-    let res =await fetch(' http://localhost:5000/addIncome', {
+    if (Number(data.incomeToSend)< 0) return;
+    let res =await fetch(' http://13.235.18.137:5000/addIncome', {
       method: "POST",
       headers:{
         "Content-Type": 'application/json'
       },
       body: JSON.stringify(
         {
-          income:Number(incomeToSend.current)
+          income:Number(data.incomeToSend)
       } 
       )
     }).then(r => r.json())
@@ -88,6 +110,7 @@ export const ExpenseForm = () => {
     console.log(res)    
   }
 
+  console.log(data, "data")
 
   return (
     <div className="App">
@@ -103,7 +126,7 @@ export const ExpenseForm = () => {
               <label for="date">Enter Date</label>
             </div>
             <div className="col-75">
-              <input onChange={(e) => date.current = e.target.value} type="date" id="date" name="date" placeholder="DD/MM/YYYY"/>
+              <input value={data.date} onChange={(e) => setData(prev => ({...prev, date: e.target.value}))} type="date" id="date" name="date" placeholder="DD/MM/YYYY"/>
             </div>
           </div>
 
@@ -112,8 +135,8 @@ export const ExpenseForm = () => {
               <label for="category">Category</label>
             </div>
             <div className="col-75">
-              <select onChange={(e) => category.current = e.target.value} id="category" name="category">
-                <option value="shoping">Shoping</option>
+              <select value={data.category} defaultValue={data.category} onChange={(e) => setData(prev => ({...prev, category: e.target.value}))} id="category" name="category">
+                <option value="shopping">Shopping</option>
                 <option value="food">Food</option>
                 <option value="travel">Travel</option>
               </select>
@@ -125,7 +148,7 @@ export const ExpenseForm = () => {
               <label for="notes">Notes</label>
             </div>
             <div className="col-75">
-              <input onChange={(e) => notes.current = e.target.value} type="text" id="notes" name="notes" placeholder="Notes"/>
+              <input value={data.notes} onChange={(e) =>  setData(prev => ({...prev, notes: e.target.value}))} type="text" id="notes" name="notes" placeholder="Notes"/>
             </div>
           </div>
       
@@ -134,11 +157,11 @@ export const ExpenseForm = () => {
               <label for="amount">Amount</label>
             </div>
             <div className="col-75">
-              <input onInput={validate} onChange={(e) => amount.current = e.target.value} type="number" id="amount" name="amount" placeholder='Enter Amount'/>
+              <input onInput={validate} value={data.amount}  onChange={(e) => setData(prev => ({...prev, amount: e.target.value}))} type="number" id="amount" name="amount" placeholder='Enter Amount'/>
             </div>
           </div>
           <div className="row">
-            <button onClick={onSubmit}>Add</button>
+            <input type='submit' value='Add Expense' onClick={onSubmit}/>
           </div>
         </div>
       </div>
@@ -149,15 +172,7 @@ export const ExpenseForm = () => {
               <label for="income">Add Income</label>
             </div>
             <div className="col-75">
-              <input type="number" onInput={(e)=>{
-                if (e.value.indexOf(".") != -1 && e.value.split(".")[1].length >=2){
-                  alert(e.value)
-                  e.value = Number(e.value).toFixed(2)
-             } 
-              }} onChange={(e) => {
-                incomeToSend.current = e.target.value
-                //code here
-                }} id="income" name="income" placeholder='Enter Amount'/>
+              <input type="number" value={data.incomeToSend} onInput={validate} onChange={(e) =>  setData(prev => ({...prev, incomeToSend: e.target.value}))} id="income" name="income" placeholder='Enter Amount'/>
               <input type = "submit" onClick={addIncome} value="Add Income"/>
             </div>
           </div>
